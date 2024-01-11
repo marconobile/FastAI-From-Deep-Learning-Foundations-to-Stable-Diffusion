@@ -1,0 +1,59 @@
+Formula to compute conv2d layer outputs:
+
+H' = floor( (H + (2 * padding) - (kernels_size * dilation) - 1) / stride ) +1
+W' = """
+
+
+H' = floor( \fract{H + (2 * padding) - (kernels_size * dilation) - 1}{stride}  + 1
+
+where default dilation = 1
+
+
+# ----------------------------------------
+
+so before we had:
+
+initial H=28, padding=1, kernel_size=3, stride=2
+
+- H' = (28+2*1-3*1-1)/2 + 1 = 14 -> after first conv2d
+- ....
+- H' = (3-2)/2 + 1 = 1 -> after first conv2d
+
+Final sequence of dimensions: [28, 14, 7, 3, 1] -> input dim + 4 layers
+
+
+Now we want to add a layer at the end of the model so we modify the first layer of the cnn + append new conv2d layer.
+If we use stride 1 instrad of stride=2 in the first layer then if using the formula above we have a final sequence of dimensions: [28, 27, 13, 6, 3, 1] -> input dim + 4 layers
+
+
+# ----------------------------------------
+
+
+
+CARE: STRIDE 1 KEES IMPUT DIMENSION
+
+Idea: how do we change the training dynamics of the 56 layered cnn, s.t. make it (in terms of training dynamics) to the 20 layered cnn?
+If the additional 36 additional layers are actually worsening the performance, then if we eg directly pass the input image again as input to the 36th layer we would have input -> 20 cnn layers -> output just as the 20 layered cnn!!
+
+So le'ts suppose we have 2-layered cnn, then the output is:
+
+> out = conv2d(conv2d(x))
+
+Let's add x to both sides of equation:
+
+> out + img = conv2d(conv2d(x)) + img
+
+Which means that eg supposing that the two conv2d layers are "useless" ->  out + x = Null + x -> where out is Null cuz the two conv2d layers are "useless"; which makes sense!
+
+The layers inbetween the sum input/output is called called res-block. It's called residual cuz by adding img to the right term we have:
+
+> out = conv2d(conv2d(x)) + img
+
+> out - img = conv2d(conv2d(x))
+
+> residue(out, img) = conv2d(conv2d(x))
+
+ISSUE: how can we sum the output of conv2d(conv2d(x)) and img if they have a different number of channels?? -> pass img into a "Identity"conv2d with 1x1 kernel_size.
+
+
+
